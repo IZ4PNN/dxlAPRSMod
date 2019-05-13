@@ -1,8 +1,8 @@
 This is a modified version of the original dxlAPRS by OE5HPM.
 
 - V 1.0 RS41 Improvements, Humidity, Pressure (Gps), Burst Killer Status, Burst Killer Timer.
-- V 1.1 Raw files added (-q Directory).
-- V 1.11 Updates from original version (M10 improvements - sondemod 1.34)
+- (11/05/2019) V 1.1 Raw files added (-q Directory).
+- (13/05/2019) V 1.11 Updates from original version (M10 improvements - sondemod 1.34)
 
 dxlAPRS is Free Software toolchain to operate APRS(r). The toolchain contains:
 - afskmodem	soundmodem for 300-19200bd afsk/fsk modulation, 2 channels
