@@ -30,7 +30,7 @@ struct sondeaprs_SDRBLOCK {
    char valid;
 };
 
-#define sondeaprs_VERSION "sondemod 1.34"
+#define sondeaprs_VERSION "sondemod 1.33"
 
 #define sondeaprs_minusG "G"
 
@@ -39,13 +39,13 @@ struct sondeaprs_SDRBLOCK {
 #define sondeaprs_minusP "P"
 
 extern void sondeaprs_senddata(double, double, double,
-                double, double, double, double,
+                double, double, double, double, double,
                 double, double, double, double,
                 double, double, double, double,
                 double, uint32_t, uint32_t, char [],
                 uint32_t, uint32_t, uint32_t, char [], uint32_t,
                 uint32_t, uint32_t, char, char [], uint32_t,
-                 char [], uint32_t, struct sondeaprs_SDRBLOCK);
+                 struct sondeaprs_SDRBLOCK, uint32_t, uint16_t, float, char, char []);
 
 extern int32_t sondeaprs_GetIp(char [], uint32_t, uint32_t *,
                 uint32_t *, uint32_t *);

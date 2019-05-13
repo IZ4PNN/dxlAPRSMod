@@ -213,8 +213,7 @@ static void wrcsv(uint32_t sattime, const char typstr[],
                 double temp, double ozon, double otemp,
                 double pumpmA, double pumpv,
                 const struct sondeaprs_SDRBLOCK sdr, double dist,
-                double azi, double ele, const char fullid[],
-                uint32_t fullid_len)
+                double azi, double ele)
 {
    int32_t fd;
    char h[1000];
@@ -225,7 +224,7 @@ static void wrcsv(uint32_t sattime, const char typstr[],
       fd = osi_OpenWrite(sondeaprs_csvfilename, 1025ul);
       strncpy(s,"Date,Time,Type,Name,lat,long,alt,speed,dir,clb,egmalt,og,mhz\
 ,sats,bk,uptime,hPa,hum,temp,ozon,ozont,pumpmA,pumpV,RxMHz,AFC,maxAFC,rssi,de\
-v,dist,azimuth,elevation,ser\012",1000u);
+v,dist,azimuth,elevation\012",1000u);
    }
    else s[0] = 0;
    if (fd<0L) {
@@ -375,10 +374,6 @@ v,dist,azimuth,elevation,ser\012",1000u);
       aprsstr_FixToStr((float)ele, 3UL, h, 1000ul);
       aprsstr_Append(s, 1000ul, h, 1000ul);
    }
-   if (fullid[0UL]) {
-      aprsstr_Append(s, 1000ul, ",", 2ul);
-      aprsstr_Append(s, 1000ul, fullid, fullid_len);
-   }
    aprsstr_Append(s, 1000ul, "\012", 2ul);
    osi_WrBin(fd, (char *)s, 1000u/1u, aprsstr_Length(s, 1000ul));
    osic_Close(fd);
@@ -494,7 +489,7 @@ static void comment0(char buf[], uint32_t buf_len, uint32_t uptime,
             }
             else if (fb[bol+1L]=='v') {
                /* insert version */
-               aprsstr_Append(hb, 120ul, " sondemod 1.34", 15ul);
+               aprsstr_Append(hb, 120ul, " sondemod 1.33", 15ul);
             }
             else if (fb[bol+1L]=='s') {
                /* insert sat count */
@@ -628,6 +623,75 @@ static uint32_t dao91(double x)
    return ((truncc((a-(double)(float)truncc(a))*6.E+5)%100UL)
                 *20UL+11UL)/22UL;
 } /* end dao91() */
+
+static void sendSer(char sondeaprs_sendSer [], uint32_t systime, char usercall[],
+                uint32_t usercall_len, char typstr[], uint32_t typstr_len, double mhz, char objname[],
+                uint32_t objname_len, uint32_t uptime, double lat, double long0,
+                double alt, double speed, double dir, double clb, double hp, double hyg,
+                double temp, uint32_t swVersion, uint16_t killTimer, float volta, uint32_t goodsats)
+{
+   char cmd[400];
+   char hq[100];
+   cmd[0] = 0;
+
+   aprsstr_Append(cmd, 399ul, "/usr/bin/curl ", 15ul);
+   aprsstr_Append(cmd, 399ul, sondeaprs_sendSer, (aprsstr_Length(sondeaprs_sendSer, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/up.php?a=", 14ul);
+   aprsstr_IntToStr((int32_t)systime,1ul,hq,100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_Append(cmd, 399ul, usercall, usercall_len+1ul);
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_Append(cmd, 399ul, typstr, typstr_len);
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)(mhz+0.005), 3UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_Append(cmd, 399ul, objname, objname_len+1ul);
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_IntToStr((int32_t)uptime,1ul,hq,100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)(lat*5.7295779513082E+1), 6UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)(long0*5.7295779513082E+1), 6UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)alt, 2UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)(speed*3.6), 2UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)dir, 2UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)clb, 2UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)hp, 2UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)hyg, 2UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)temp, 2UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_IntToStr((int32_t)swVersion,1ul,hq,100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_IntToStr((int32_t)killTimer,1ul,hq,100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_FixToStr((float)volta, 2UL, hq, 100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   aprsstr_Append(cmd, 399ul, "/", 2ul);
+   aprsstr_IntToStr((int32_t)goodsats,1ul,hq,100ul);
+   aprsstr_Append(cmd, 399ul, hq, (aprsstr_Length(hq, 100ul)+1UL));
+   system(cmd);
+}
 
 
 static void sendaprs(uint32_t comp0, uint32_t micessid, char dao,
@@ -942,14 +1006,17 @@ static void sendaprs(uint32_t comp0, uint32_t micessid, char dao,
                 mydist);
    aprsstr_Append(b, 201ul, h, 201ul);
    /*  Append(b, CR+LF); */
+   if (sondeaprs_verb) osi_WrStrLn(b, 201ul);
    if (aprsstr_Length(mycall, mycall_len)>=3UL) {
       if (!sondeaprs_sendmon) {
          aprsstr_mon2raw(b, 201ul, raw, 361ul, &rp);
-         if (rp>0L) sendudp(raw, 361ul, rp);
+         if (rp>0L) {
+            sendudp(raw, 361ul, rp);
+         }
       }
       else sendudp(b, 201ul, (int32_t)(aprsstr_Length(b, 201ul)+1UL));
    }
-   if (sondeaprs_verb) osi_WrStrLn(b, 201ul);
+   
    X2C_PFREE(mycall);
    X2C_PFREE(destcall);
    X2C_PFREE(via);
@@ -1084,7 +1151,8 @@ static void show(struct DATLINE d)
       osic_WrFixed((float)d.temp, 1L, 5UL);
       osi_WrStr("C ", 3ul);
    }
-   osic_WrINT32(osi_realcard((float)d.hyg), 2UL);
+   osic_WrFixed((float)d.hyg, 1L, 5UL);
+   /*osic_WrINT32(osi_realcard((float)d.hyg), 2UL); */
    osi_WrStr("% ", 3ul);
    osic_WrINT32(osi_realcard((float)(d.speed*3.6)), 3UL);
    osi_WrStr("km/h ", 6ul);
@@ -1368,7 +1436,7 @@ static void elevation(double * el, double * c,
 extern void sondeaprs_senddata(double lat, double long0,
                 double alt, double speed, double dir,
                 double clb, double hp, double hyg,
-                double temp, double ozon, double otemp,
+                double temp, double tempT, double ozon, double otemp,
                 double pumpmA, double pumpv, double mhz,
                 double hrms, double vrms, uint32_t sattime,
                 uint32_t uptime, char objname[],
@@ -1376,8 +1444,8 @@ extern void sondeaprs_senddata(double lat, double long0,
                 uint32_t goodsats, char usercall[],
                 uint32_t usercall_len, uint32_t calperc,
                 uint32_t burstKill, char force, char typstr[],
-                uint32_t typstr_len, char fullid[],
-                uint32_t fullid_len, struct sondeaprs_SDRBLOCK sdr)
+                uint32_t typstr_len, struct sondeaprs_SDRBLOCK sdr, uint32_t swVersion, uint16_t killTimer, float volta,
+                char sondeaprs_sendSerOk, char sondeaprs_sendSer [])
 {
    uint8_t e;
    pCONTEXT ct;
@@ -1445,7 +1513,7 @@ extern void sondeaprs_senddata(double lat, double long0,
       wrcsv(sattime, typstr, typstr_len, objname, objname_len, lat, long0,
                 alt, speed, dir, clb, egmalt, og, mhz, goodsats, burstKill,
                 uptime, hp, hyg, temp, ozon, otemp, pumpmA, pumpv, sdr,
-                mydist, myazi, myele, fullid, fullid_len);
+                mydist, myazi, myele);
    }
    if (aprsstr_Length(usercall, usercall_len)<3UL) {
       osi_WrStrLn("no tx without <mycall>", 23ul);
@@ -1549,10 +1617,9 @@ extern void sondeaprs_senddata(double lat, double long0,
                aprsstr_Append(s, 251ul, h, 251ul);
                aprsstr_Append(s, 251ul, "C", 2ul);
             }
-            if (hyg>=0.5 && (0x4U & chk)==0) {
+            if (hyg>=0) {
                aprsstr_Append(s, 251ul, " h=", 4ul);
-               aprsstr_IntToStr((int32_t)truncc(anonym->dat[0U].hyg+0.5),
-                1UL, h, 251ul);
+               aprsstr_FixToStr((float)anonym->dat[0U].hyg, 2UL, h, 251ul);
                aprsstr_Append(s, 251ul, h, 251ul);
                aprsstr_Append(s, 251ul, "%", 2ul);
             }
@@ -1600,7 +1667,7 @@ extern void sondeaprs_senddata(double lat, double long0,
             if (typstr[0UL]) {
                aprsstr_Append(s, 251ul, " Type=", 7ul);
                aprsstr_Append(s, 251ul, typstr, typstr_len);
-            }
+            }  
             if (og>=0.0 && og<=(double)sondeaprs_lowalt) {
                aprsstr_Append(s, 251ul, " OG=", 5ul);
                aprsstr_IntToStr((int32_t)X2C_TRUNCI(og,X2C_min_longint,
@@ -1614,12 +1681,43 @@ extern void sondeaprs_senddata(double lat, double long0,
                if (burstKill==1UL) {
                   aprsstr_Append(s, 251ul, "Off", 4ul);
                }
-               else aprsstr_Append(s, 251ul, "On", 3ul);
+               else if (killTimer==0UL) {
+                  aprsstr_Append(s, 251ul, "On", 2ul);
+                  }
+               else if (killTimer<65535UL) {
+                  uint16_t ore = (killTimer/60UL/60UL)%24;
+                  if (ore > 0ul) {
+                     if (ore < 10ul) aprsstr_IntToStr((int32_t)ore,1ul,h,251ul);
+                     else aprsstr_IntToStr((int32_t)ore,2ul,h,251ul);
+                     aprsstr_Append(s, 251ul, h, 251ul);
+                     aprsstr_Append(s, 251ul, "h", 2ul);
+                   }
+                  uint16_t min = (killTimer/60UL)%60;
+                  if (min > 0ul) {
+                     if(min < 10ul) aprsstr_IntToStr((int32_t)min,1ul,h,251ul);
+                     else aprsstr_IntToStr((int32_t)min,2ul,h,251ul);
+                     aprsstr_Append(s, 251ul, h, 251ul);
+                     aprsstr_Append(s, 251ul, "m", 2ul);
+                   }
+                   uint16_t sec = killTimer%60;
+                  if (sec > 0) {
+                     if(sec < 10) aprsstr_IntToStr((int32_t)sec,1ul,h,251ul);
+                     else aprsstr_IntToStr((int32_t)sec,2ul,h,251ul);
+                     aprsstr_Append(s, 251ul, h, 251ul);
+                     aprsstr_Append(s, 251ul, "s", 2ul);
+                   }
+                }
             }
-            /* appended by SQ7BR */
-            if (fullid[0UL]) {
-               aprsstr_Append(s, 251ul, " ser=", 6ul);
-               aprsstr_Append(s, 251ul, fullid, fullid_len);
+            if (swVersion>0UL) {
+                   aprsstr_Append(s, 251ul, " SV=", 5ul);
+                   aprsstr_IntToStr((int32_t)swVersion,5ul,h,251ul);
+                   aprsstr_Append(s, 251ul, h, 251ul);
+            }
+            if (volta>0UL) {
+                   aprsstr_Append(s, 251ul, " V=", 4ul);
+                   aprsstr_FixToStr((float)volta, 2UL, h, 251UL);
+                   aprsstr_Append(s, 251ul, h, 251ul);
+                   aprsstr_Append(s, 251ul, "V", 1ul);
             }
             if (force) aprsstr_Append(s, 251ul, " Unchecked-Data", 16ul);
             if (sondeaprs_expire>0UL && (systime>sattime+sondeaprs_expire || systime+sondeaprs_expire<sattime)
@@ -1654,7 +1752,12 @@ extern void sondeaprs_senddata(double lat, double long0,
                 (double)(float)(truncc(anonym->dat[0U].dir)%360UL),
                 anonym->dat[0U].speed*3.6, goodsats, hrms, s, 251ul,
                 &anonym->commentline, sdr, myazi, myele, mydist);
+                if(sondeaprs_sendSerOk) {
+               sendSer(sondeaprs_sendSer, systime, usercall, usercall_len,
+                  typstr, typstr_len, mhz, objname, objname_len, uptime, lat, long0,
+                  alt, speed, dir, clb, hp, hyg, temp, swVersion, killTimer, volta, goodsats);
             }
+         }
             anonym->lastbeacon = systime;
             anonym->speedcnt = 0UL;
             anonym->speedsum = 0.0;
